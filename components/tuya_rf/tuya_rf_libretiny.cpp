@@ -47,6 +47,20 @@ void TuyaRfComponent::turn_off_receiver() {
    }
 }
 
+bool TuyaRfComponent::set_frequency(uint32_t frequency) {
+  if (RF_SetFrequency(frequency) != 0) {
+    ESP_LOGE(TAG, "Unsupported frequency %u Hz", frequency);
+    return false;
+  }
+  this->frequency_ = frequency;
+  ESP_LOGD(TAG, "frequency set to %.3f MHz", frequency / 1e6f);
+  // the new registers are loaded by StartTx/StartRx, restart the receiver if it is running
+  if (!this->receiver_disabled_ && !this->transmitting_) {
+    StartRx();
+  }
+  return true;
+}
+
 void TuyaRfComponent::set_receiver(bool on) {
   if (on) {
     ESP_LOGD(TAG, "starting receiver");
@@ -86,6 +100,11 @@ void TuyaRfComponent::setup() {
   this->RemoteTransmitterBase::pin_->setup();
   this->RemoteTransmitterBase::pin_->digital_write(false);
   this->RemoteReceiverBase::pin_->setup();
+  if (RF_SetFrequency(this->frequency_) != 0) {
+    ESP_LOGE(TAG, "Unsupported frequency %u Hz", this->frequency_);
+    this->mark_failed();
+    return;
+  }
   
   auto &s = this->store_;
   s.filter_us = this->filter_us_;
@@ -109,6 +128,7 @@ void TuyaRfComponent::dump_config() {
   LOG_PIN("  Fcsb Pin: ",this->fcsb_pin_);
   LOG_PIN("  Tx Pin: ",this->RemoteTransmitterBase::pin_);
   LOG_PIN("  Rx Pin: ", this->RemoteReceiverBase::pin_);
+  ESP_LOGCONFIG(TAG, "  Frequency: %.3f MHz", this->frequency_ / 1e6f);
   //probably the warning isn't useful due to the noisy signal
   if (!this->RemoteReceiverBase::pin_->digital_read()) {
     ESP_LOGW(TAG, "Remote Receiver Signal starts with a HIGH value. Usually this means you have to "

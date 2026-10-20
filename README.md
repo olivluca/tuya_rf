@@ -43,6 +43,7 @@ You can use the same configuration variables of the [remote_transmitter](https:/
 | variable | default | description |
 |--|--|--|
 |receiver_disabled|false|set it to true to disable the receiver|
+|frequency|433.92MHz|rf frequency used both to transmit and receive, see [frequency](#frequency)|
 |tx_pin|P20|pin used to transmit data, note that by default it is inverted, so a pulse is 1 and a space is 0 (the signal on my device is reversed: 0 for a pulse, 1 for a space)|
 |rx_pin|P22|pin used to receive the data, note that by default it is inverted just like the tx_pin|
 |start_pulse_min|6ms|the minimun duration of the starting pulse|
@@ -52,6 +53,17 @@ You can use the same configuration variables of the [remote_transmitter](https:/
 |mosi_pin|P16|the bidirectional data pin of the spi communication. Only the number of the pin is used, the remaining parameters of the pin schema are ignored|
 |csb_pin|P6|spi chip select pin to read/write registers. Only the number of the pin is used, the remaining parameters of the pin schema are ignored|
 |fcsb_pin|P26|spi chip select pin to read/write the fifo. It is not used|
+
+## frequency
+
+The CMT2300A can work in these bands: 126.33-170MHz, 189.5-340MHz, 379-510MHz and 758-1020MHz, the registers
+are calculated following the CMOSTEK application note AN199 (rf frequency calculation guide) and they give
+exactly the same values as the RFPDK tool.
+
+Keep in mind that the antenna matching network on the board is optimized for 433.92MHz, so other frequencies
+(e.g. 315MHz) should work but the range will probably be reduced.
+The PA power registers are adjusted for the 280-340MHz band (values taken from an RFPDK 315MHz export),
+the other bands use the same PA settings of 433.92MHz.
 
 ## actions
 
@@ -63,3 +75,17 @@ Once the code is fixed to work with multiple instances of tuya_rf (currently
 it only allows one instance) you shuould specify the `receiver_id` in the
 action.
 
+
+The frequency can also be changed at runtime with the `tuya_rf.set_frequency` action
+(the receiver, if active, is restarted on the new frequency):
+
+```yaml
+button:
+  - platform: template
+    name: "switch to 315MHz"
+    on_press:
+      - tuya_rf.set_frequency:
+          frequency: 315MHz
+```
+
+`frequency` can also be a lambda returning the frequency in Hz.

@@ -27,6 +27,7 @@
 extern "C" { 
 #endif
 
+int RF_SetFrequency(uint32_t freq_hz);
 int StartTx(void);
 int StartRx(void);
 
